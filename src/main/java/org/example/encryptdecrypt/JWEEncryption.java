@@ -15,6 +15,15 @@ import java.util.Base64;
 
 public class JWEEncryption {
 
+    static RSAPublicKey  RsaPublicKey  = null;
+   static RSAPrivateKey RsaPrivateKey = null;
+    public static void createPrivatePublicKey() throws Exception {
+      RSAKey keyPair =  generateRSAKeyPair();
+        RsaPublicKey = keyPair.toRSAPublicKey();
+        RsaPrivateKey = keyPair.toRSAPrivateKey();
+    }
+
+
     public static void main(String[] args) throws Exception {
         // Generate RSA key pair (for demonstration purposes)
         RSAKey keyPair = generateRSAKeyPair();
@@ -33,18 +42,21 @@ public class JWEEncryption {
         String dataToEncrypt = "Hello, world!";
 
         // Encrypt data using private key
-        String encryptedData = encryptData(dataToEncrypt, RsaPublicKey);
+        String encryptedData = encryptData(dataToEncrypt);
 
         // Decrypt data using public key
-        String decryptedData = decryptData(encryptedData, RsaPrivateKey);
+        String decryptedData = decryptData(encryptedData);
 
         System.out.println("Original Data: " + dataToEncrypt);
         System.out.println("Encrypted Data: " + encryptedData);
         System.out.println("Decrypted Data: " + decryptedData);
     }
 
-    public static String encryptData(String data, RSAPublicKey publicKey) throws Exception {
+    public static String encryptData(String data) throws Exception {
+        //generate public key
+        createPrivatePublicKey();
         // Create JWE header
+
         JWEHeader header = new JWEHeader.Builder(JWEAlgorithm.RSA_OAEP_256, EncryptionMethod.A256GCM)
                 .contentType("text/plain")
                 .build();
@@ -53,7 +65,7 @@ public class JWEEncryption {
         JWEObject jweObject = new JWEObject(header, new Payload(data));
 
         // Create encrypter with the private key
-        RSAEncrypter encrypter = new RSAEncrypter(publicKey);
+        RSAEncrypter encrypter = new RSAEncrypter(RsaPublicKey);
 
         // Encrypt the payload
         jweObject.encrypt(encrypter);
@@ -62,12 +74,12 @@ public class JWEEncryption {
         return jweObject.serialize();
     }
 
-    public static String decryptData(String encryptedData, RSAPrivateKey privateKey) throws Exception {
+    public static String decryptData(String encryptedData) throws Exception {
         // Parse the JWE object
         JWEObject jweObject = JWEObject.parse(encryptedData);
 
         // Create decrypter with the public key
-        RSADecrypter decrypter = new RSADecrypter(privateKey);
+        RSADecrypter decrypter = new RSADecrypter(RsaPrivateKey);
 
         // Decrypt the JWE object
         jweObject.decrypt(decrypter);
@@ -80,6 +92,7 @@ public class JWEEncryption {
         // Generate an RSA key pair with a key size of 2048 bits
         return new RSAKeyGenerator(2048).generate();
     }
+
 
     public static String encode(byte[] data){
         return Base64.getEncoder().encodeToString(data);
